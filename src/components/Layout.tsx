@@ -80,16 +80,16 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
               </li>
               <li className="mb-1">
                 <Link 
-                  to="/train-schedules"
-                  className={`block w-full text-left p-2 rounded ${isActive('/train-schedules') ? 'bg-gray-700 text-dashboard-header' : 'hover:bg-gray-700 text-dashboard-subtext'}`}
+                  to="/procurement-schedules"
+                  className={`block w-full text-left p-2 rounded ${isActive('/procurement-schedules') ? 'bg-gray-700 text-dashboard-header' : 'hover:bg-gray-700 text-dashboard-subtext'}`}
                 >
                   <span className="ml-6">Procurement Schedules</span>
                 </Link>
               </li>
               <li className="mb-1">
                 <Link 
-                  to="/ticket-sales"
-                  className={`block w-full text-left p-2 rounded ${isActive('/ticket-sales') ? 'bg-gray-700 text-dashboard-header' : 'hover:bg-gray-700 text-dashboard-subtext'}`}
+                  to="/invoice-intake"
+                  className={`block w-full text-left p-2 rounded ${isActive('/invoice-intake') ? 'bg-gray-700 text-dashboard-header' : 'hover:bg-gray-700 text-dashboard-subtext'}`}
                 >
                   <span className="ml-6">Invoice Intake</span>
                 </Link>
@@ -104,10 +104,18 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
               </li>
               <li className="mb-1">
                 <Link 
-                  to="/train-fleet"
-                  className={`block w-full text-left p-2 rounded ${isActive('/train-fleet') ? 'bg-gray-700 text-dashboard-header' : 'hover:bg-gray-700 text-dashboard-subtext'}`}
+                  to="/supplier-management"
+                  className={`block w-full text-left p-2 rounded ${isActive('/supplier-management') ? 'bg-gray-700 text-dashboard-header' : 'hover:bg-gray-700 text-dashboard-subtext'}`}
                 >
                   <span className="ml-6">Supplier Management</span>
+                </Link>
+              </li>
+              <li className="mb-1">
+                <Link 
+                  to="/membership"
+                  className={`block w-full text-left p-2 rounded ${isActive('/membership') ? 'bg-gray-700 text-dashboard-header' : 'hover:bg-gray-700 text-dashboard-subtext'}`}
+                >
+                  <span className="ml-6">Membership</span>
                 </Link>
               </li>
             </ul>
@@ -129,15 +137,6 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
                   <path fillRule="evenodd" d="M10 2a6 6 0 00-6 6c0 1.887.87 3.568 2.23 4.679l.27.27.91.91.27.27.91.91c1.11 1.36 2.79 2.23 4.68 2.23A6 6 0 0010 2zm0 9a3 3 0 110-6 3 3 0 010 6z" clipRule="evenodd" />
                 </svg>
                 <span>Modeling</span>
-              </Link>
-              <Link 
-                to="/passengers"
-                className={`block w-full text-left p-2 rounded ${isActive('/passengers') ? 'bg-gray-700 text-dashboard-header' : 'hover:bg-gray-700 text-dashboard-subtext'} flex items-center`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-                </svg>
-                <span>Membership Management</span>
               </Link>
               <Link 
                 to="/system-logs"

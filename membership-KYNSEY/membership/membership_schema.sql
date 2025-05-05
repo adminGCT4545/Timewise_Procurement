@@ -1,7 +1,7 @@
 -- Membership Program Database Schema
 -- Created: May 1, 2025
 
-SET search_path TO test2;
+SET search_path TO public;
 
 -- Set timezone to ensure consistency in timestamp data
 SET timezone = 'America/Chicago';
@@ -217,6 +217,8 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+-- Create a trigger to execute the function on member updates
+
 CREATE TRIGGER check_member_expiration
     BEFORE INSERT OR UPDATE OF expiration_date ON members
     FOR EACH ROW
@@ -224,3 +226,26 @@ CREATE TRIGGER check_member_expiration
 
 -- Sample data insert statements would go here
 -- (As provided in the previous artifact)
+
+-- Prepared Statements used by memberModel.js
+
+-- Get all members with optional status and type filters, and limit
+PREPARE get_all_members(VARCHAR, VARCHAR, INTEGER) AS
+  SELECT m.*
+  FROM members m
+  WHERE
+    ($1 IS NULL OR m.status = $1::member_status) AND
+    ($2 IS NULL OR m.membership_type = $2)
+  ORDER BY m.member_id
+  LIMIT $3;
+
+-- Get a specific member by their ID
+PREPARE get_member_by_id(INTEGER) AS
+  SELECT * FROM members WHERE member_id = $1;
+
+-- Get members whose memberships are expiring within a certain number of days
+PREPARE get_expiring_memberships(INTEGER, INTEGER) AS
+  SELECT * FROM expiring_memberships
+  WHERE days_remaining <= $1
+  ORDER BY days_remaining ASC
+  LIMIT $2;

@@ -7,24 +7,11 @@ interface QueryOptions {
   params?: any[];
 }
 
-// Test mock data
-const mockQueryResult: QueryResult = {
-  rows: [{
-    train_id: '101',
-    train_name: 'Test Train',
-    departure_city: 'Test City',
-    arrival_city: 'Test City',
-    journey_date: '2025-04-27',
-    class: 'Test Class',
-    scheduled_time: '12:00:00',
-    is_delayed: false,
-    delay_minutes: 0,
-    total_seats: 100,
-    reserved_seats: 50,
-    revenue: 1000
-  }],
+// Empty QueryResult for testing environment
+const emptyQueryResult: QueryResult = {
+  rows: [],
   command: 'SELECT',
-  rowCount: 1,
+  rowCount: 0,
   oid: 0,
   fields: []
 };
@@ -33,8 +20,8 @@ const mockQueryResult: QueryResult = {
 export const query = async (text: string, params?: any[]): Promise<QueryResult> => {
   // Mock the query function for testing
   if (process.env.NODE_ENV === 'test') {
-    console.log('Using mock query function');
-    return mockQueryResult;
+    console.log('Using empty query result for testing');
+    return emptyQueryResult;
   }
 
   try {
@@ -74,11 +61,8 @@ export const query = async (text: string, params?: any[]): Promise<QueryResult> 
     console.error('Query text:', text);
     console.error('Query params:', params);
     
-    // Return fallback data in case of error
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('Returning mock data due to query error');
-      return mockQueryResult;
-    }
+    // No fallback to mock data - only use PostgreSQL data
+    console.error('Query failed - no fallback to mock data');
     
     throw error;
   }

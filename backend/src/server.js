@@ -8,8 +8,28 @@ import { fileURLToPath } from 'url';
 import dashboardRoutes from '../routes/dashboard.js';
 import dashboardExtendedRoutes from '../routes/dashboard-extended.js';
 import supplierManagementRoutes from '../routes/supplier-management.js';
+import supplierOverviewRoutes from '../routes/supplier-overview.js';
 import memberManagementRoutes from '../routes/member-management.js';
+import invoiceRoutes from '../routes/invoice-routes.js';
 import { initNotificationListener, addClient } from '../services/liveUpdateService.js';
+
+// Make sure the PostgreSQL connection is established
+console.log('Testing PostgreSQL connection before server startup...');
+const testPool = new pg.Pool({
+  host: process.env.PGHOST || 'localhost',
+  user: process.env.PGUSER || 'postgres',
+  password: process.env.PGPASSWORD || 'postgres',
+  database: process.env.PGDATABASE || 'timewise_procument',
+  port: parseInt(process.env.PGPORT || '5432'),
+});
+
+testPool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('PostgreSQL connection test failed:', err);
+  } else {
+    console.log('PostgreSQL connection test succeeded:', res.rows[0]);
+  }
+});
 
 // Load environment variables
 dotenv.config();
@@ -18,17 +38,17 @@ const app = express();
 const port = process.env.PORT || 8888; // Using a very high port number to avoid conflicts
 
 // PostgreSQL connection pool
-const pool = new pg.Pool({
+const { Pool } = pg;
+const pool = new Pool({
   host: process.env.PGHOST || 'localhost',
-  user: process.env.PGUSER || 'your_postgres_username',
-  password: process.env.PGPASSWORD || 'your_postgres_password',
-  database: process.env.PGDATABASE || 'procurement',
+  user: process.env.PGUSER || 'postgres',
+  password: process.env.PGPASSWORD || 'postgres',
+  database: process.env.PGDATABASE || 'timewise_procument',
   port: parseInt(process.env.PGPORT || '5432'),
 });
 
 console.log('Trying to connect to PostgreSQL...');
  
-
 // Test the PostgreSQL connection
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
@@ -43,7 +63,7 @@ global.pgPool = pool;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:9000', 'http://localhost:8000', 'http://localhost:5174', 'http://localhost:5180'], // Allow our frontend servers
+  origin: ['http://localhost:9000', 'http://localhost:8000', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:5178', 'http://localhost:5179', 'http://localhost:5180'], // Allow our frontend servers
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 })); // Configure CORS
@@ -75,7 +95,9 @@ app.post('/oauth/token', async (req, res) => {
 // Dashboard API routes
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/dashboard', dashboardExtendedRoutes);
+app.use('/api/dashboard', invoiceRoutes);
 app.use('/api/supplier-management', supplierManagementRoutes);
+app.use('/api/supplier-management', supplierOverviewRoutes);
 app.use('/api/member-management', memberManagementRoutes);
 
 // Connection status endpoint
@@ -165,8 +187,8 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API is working' });
 });
 
-// Export the app for testing purposes
-export default app;
+// Export the app and pool for testing purposes
+export { app as default, pool };
 
 // Live updates endpoint using Server-Sent Events (SSE)
 app.get('/api/live-updates', (req, res) => {

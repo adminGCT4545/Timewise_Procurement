@@ -5,11 +5,11 @@ import pg from 'pg';
 import { fileURLToPath } from 'url';
 
 // Import dashboard routes and live update service
-import dashboardRoutes from '../routes/dashboard.js';
-import dashboardExtendedRoutes from '../routes/dashboard-extended.js';
-import supplierManagementRoutes from '../routes/supplier-management.js';
-import memberManagementRoutes from '../routes/member-management.js';
-import { initNotificationListener, addClient } from '../services/liveUpdateService.js';
+import dashboardRoutes from './routes/dashboard.js';
+import dashboardExtendedRoutes from './routes/dashboard-extended.js';
+import supplierManagementRoutes from './routes/supplier-management.js';
+import memberManagementRoutes from './routes/member-management.js';
+import { initNotificationListener, addClient } from './services/liveUpdateService.js';
 
 // Load environment variables
 dotenv.config();
@@ -19,10 +19,10 @@ const port = process.env.PORT || 8888; // Using a very high port number to avoid
 
 // PostgreSQL connection pool
 const pool = new pg.Pool({
-  host: process.env.PGHOST || 'localhost',
-  user: process.env.PGUSER || 'your_postgres_username',
-  password: process.env.PGPASSWORD || 'your_postgres_password',
-  database: process.env.PGDATABASE || 'procurement',
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'postgres',
+  database: process.env.DB_DATABASE || 'membership',
   port: parseInt(process.env.PGPORT || '5432'),
 });
 

@@ -1,26 +1,11 @@
--- Create membership table
-CREATE TABLE members (
-    member_id SERIAL PRIMARY KEY,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    phone VARCHAR(20),
-    address_line1 VARCHAR(100),
-    address_line2 VARCHAR(100),
-    city VARCHAR(50),
-    state VARCHAR(50),
-    postal_code VARCHAR(20),
-    country VARCHAR(50) DEFAULT 'United States',
-    membership_type VARCHAR(20) NOT NULL,
-    join_date DATE NOT NULL,
-    expiration_date DATE NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'active',
-    points INTEGER DEFAULT 0,
-    last_login TIMESTAMP,
-    referral_source VARCHAR(50),
-    notes TEXT
-);
+-- Sample data for membership_types table
+-- Insert membership types
+INSERT INTO membership_types (type_name, monthly_fee, benefits, points_multiplier) VALUES
+    ('standard', 9.99, 'Basic access to facilities, online resources', 1.00),
+    ('premium', 19.99, 'Full access to facilities, priority booking, exclusive events', 1.50),
+    ('family', 29.99, 'All premium benefits for up to 5 family members', 2.00);
 
+-- Sample data for members table
 -- Insert 25 sample members
 INSERT INTO members (
     first_name, last_name, email, phone, 
@@ -153,31 +138,7 @@ INSERT INTO members (
      'premium', '2023-10-10', '2024-10-10', 'expiring', 840, 
      '2025-04-18 16:40:15', 'social_media', 'Send renewal reminder');
 
--- Create a membership_types table for reference
-CREATE TABLE membership_types (
-    type_id SERIAL PRIMARY KEY,
-    type_name VARCHAR(20) UNIQUE NOT NULL,
-    monthly_fee DECIMAL(10, 2) NOT NULL,
-    benefits TEXT,
-    points_multiplier DECIMAL(3, 2) DEFAULT 1.00
-);
-
--- Insert membership types
-INSERT INTO membership_types (type_name, monthly_fee, benefits, points_multiplier) VALUES
-    ('standard', 9.99, 'Basic access to facilities, online resources', 1.00),
-    ('premium', 19.99, 'Full access to facilities, priority booking, exclusive events', 1.50),
-    ('family', 29.99, 'All premium benefits for up to 5 family members', 2.00);
-
--- Create activity log table to track member engagement
-CREATE TABLE activity_log (
-    log_id SERIAL PRIMARY KEY,
-    member_id INTEGER REFERENCES members(member_id),
-    activity_type VARCHAR(50) NOT NULL,
-    activity_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    points_earned INTEGER DEFAULT 0,
-    details TEXT
-);
-
+-- Sample data for activity_log table
 -- Sample activity data for a few members
 INSERT INTO activity_log (member_id, activity_type, activity_date, points_earned, details) VALUES
     (1, 'event_attendance', '2025-04-15 18:00:00', 50, 'Spring Member Mixer'),
@@ -190,3 +151,15 @@ INSERT INTO activity_log (member_id, activity_type, activity_date, points_earned
     (17, 'purchase', '2025-04-18 15:45:00', 35, 'Cafe purchase - $70'),
     (20, 'webinar', '2025-04-10 19:00:00', 25, 'Online workshop participation'),
     (22, 'referral', '2025-04-02 11:20:00', 100, 'Referred new member Ryan Hall');
+
+-- Newly added member through UI
+INSERT INTO members (
+    first_name, last_name, email, phone, 
+    address_line1, address_line2, city, state, postal_code, country,
+    membership_type, join_date, expiration_date, status, points, 
+    last_login, referral_source, notes
+) VALUES
+    ('Test', 'User', 'test.user@example.com', '512-555-9999', 
+     '789 Test Ave', 'Unit 42', 'Austin', 'TX', '78701', 'United States', 
+     'premium', 'Sun May 04 2025 00:00:00 GMT-0500 (Central Daylight Time)', 'Mon May 04 2026 00:00:00 GMT-0500 (Central Daylight Time)', 'active', 50, 
+     NULL, 'website', 'Test user created via script');

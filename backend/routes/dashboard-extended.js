@@ -214,7 +214,7 @@ router.get('/invoices', async (req, res) => {
         supplier_id: parseInt(order.order_id),
         supplier_name: order.supplier_name,
         po_id: order.id,
-        po_number: `PO-${2025}-${order.id.toString().padStart(4, '0')}`,
+        po_number: `PO-${2025}-${order.id ? order.id.toString().padStart(4, '0') : '0000'}`,
         invoice_date: invoiceDate.toISOString(),
         due_date: dueDate.toISOString(),
         status: isPaid ? 'paid' : 'open',

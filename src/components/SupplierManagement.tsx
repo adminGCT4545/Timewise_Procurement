@@ -6,41 +6,36 @@ const SupplierManagement: React.FC = () => {
   const [expiringContracts, setExpiringContracts] = useState<any[]>([]);
   const [expiringCertifications, setExpiringCertifications] = useState<any[]>([]);
   const [highRiskSuppliers, setHighRiskSuppliers] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
+        setError(null);
         
+        // Fetch overview data
+        const overviewResponse = await fetch('/api/supplier-management/dashboard/overview');
+        if (!overviewResponse.ok) throw new Error('Failed to fetch overview data');
+        const overviewData = await overviewResponse.json();
+
         // Fetch suppliers
         const suppliersResponse = await fetch('/api/supplier-management/suppliers');
+        if (!suppliersResponse.ok) throw new Error('Failed to fetch suppliers');
         const suppliersData = await suppliersResponse.json();
+
+        // Update state with fetched data
         setSuppliers(suppliersData);
-        
-        // Fetch supplier performance summary
-        const performanceResponse = await fetch('/api/supplier-management/performance-summary');
-        const performanceData = await performanceResponse.json();
-        setSupplierPerformance(performanceData);
-        
-        // Fetch expiring contracts
-        const expiringContractsResponse = await fetch('/api/supplier-management/expiring-contracts');
-        const expiringContractsData = await expiringContractsResponse.json();
-        setExpiringContracts(expiringContractsData);
-        
-        // Fetch expiring certifications
-        const expiringCertificationsResponse = await fetch('/api/supplier-management/expiring-certifications');
-        const expiringCertificationsData = await expiringCertificationsResponse.json();
-        setExpiringCertifications(expiringCertificationsData);
-        
-        // Fetch high risk suppliers
-        const highRiskSuppliersResponse = await fetch('/api/supplier-management/high-risk-suppliers');
-        const highRiskSuppliersData = await highRiskSuppliersResponse.json();
-        setHighRiskSuppliers(highRiskSuppliersData);
-        
-        setIsLoading(false);
+        setSupplierPerformance(overviewData.performance || []);
+        setExpiringContracts(overviewData.contracts?.expiring || []);
+        setExpiringCertifications(overviewData.certifications?.expiring || []);
+        setHighRiskSuppliers(overviewData.risk?.highRiskSuppliers || []);
+
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('Error fetching data:', error);
+        setError(error instanceof Error ? error.message : 'Unknown error occurred');
+      } finally {
         setIsLoading(false);
       }
     };
@@ -131,25 +126,37 @@ const SupplierManagement: React.FC = () => {
           <h2 className="text-dashboard-header text-lg mb-3">Performance Overview</h2>
           <div className="grid grid-cols-2 gap-2">
             <div className="text-dashboard-subtext">Avg. Quality Score:</div>
-            <div className="text-dashboard-text text-right">
-              {supplierPerformance.length > 0 
-                ? (supplierPerformance.reduce((sum, perf) => sum + perf.avg_quality_score, 0) / supplierPerformance.length).toFixed(1)
-                : 'N/A'}
-            </div>
-            
-            <div className="text-dashboard-subtext">Avg. Delivery Score:</div>
-            <div className="text-dashboard-text text-right">
-              {supplierPerformance.length > 0 
-                ? (supplierPerformance.reduce((sum, perf) => sum + perf.avg_delivery_score, 0) / supplierPerformance.length).toFixed(1)
-                : 'N/A'}
-            </div>
-            
-            <div className="text-dashboard-subtext">Avg. Overall Score:</div>
-            <div className="text-dashboard-text text-right">
-              {supplierPerformance.length > 0 
-                ? (supplierPerformance.reduce((sum, perf) => sum + perf.avg_overall_score, 0) / supplierPerformance.length).toFixed(1)
-                : 'N/A'}
-            </div>
+          <div className="text-dashboard-text text-right">
+            {supplierPerformance.length > 0 
+              ? (supplierPerformance.reduce((sum, perf) => {
+                  const score = typeof perf.avg_quality_score === 'number' ? perf.avg_quality_score : 
+                                (typeof perf.quality_score === 'number' ? perf.quality_score : 0);
+                  return sum + score;
+                }, 0) / supplierPerformance.length).toFixed(1)
+              : 'N/A'}
+          </div>
+          
+          <div className="text-dashboard-subtext">Avg. Delivery Score:</div>
+          <div className="text-dashboard-text text-right">
+            {supplierPerformance.length > 0 
+              ? (supplierPerformance.reduce((sum, perf) => {
+                  const score = typeof perf.avg_delivery_score === 'number' ? perf.avg_delivery_score : 
+                                (typeof perf.delivery_score === 'number' ? perf.delivery_score : 0);
+                  return sum + score;
+                }, 0) / supplierPerformance.length).toFixed(1)
+              : 'N/A'}
+          </div>
+          
+          <div className="text-dashboard-subtext">Avg. Overall Score:</div>
+          <div className="text-dashboard-text text-right">
+            {supplierPerformance.length > 0 
+              ? (supplierPerformance.reduce((sum, perf) => {
+                  const score = typeof perf.avg_overall_score === 'number' ? perf.avg_overall_score : 
+                                (typeof perf.overall_score === 'number' ? perf.overall_score : 0);
+                  return sum + score;
+                }, 0) / supplierPerformance.length).toFixed(1)
+              : 'N/A'}
+          </div>
           </div>
         </div>
       </div>
@@ -233,7 +240,7 @@ const SupplierManagement: React.FC = () => {
                     </span>
                   </div>
                   <div className="text-dashboard-subtext text-sm">
-                    Score: {item.overall_risk_score ? item.overall_risk_score.toFixed(1) : 'N/A'}
+                    Score: {item.overall_risk_score && typeof item.overall_risk_score === 'number' ? item.overall_risk_score.toFixed(1) : 'N/A'}
                   </div>
                 </li>
               ))}
@@ -275,7 +282,7 @@ const SupplierManagement: React.FC = () => {
                       {supplier.supplier_status ? supplier.supplier_status.charAt(0).toUpperCase() + supplier.supplier_status.slice(1) : 'Unknown'}
                     </span>
                   </td>
-                  <td className="py-3 px-4">{supplier.financial_stability_score ? supplier.financial_stability_score.toFixed(1) : 'N/A'}</td>
+                  <td className="py-3 px-4">{supplier.financial_stability_score && typeof supplier.financial_stability_score === 'number' ? supplier.financial_stability_score.toFixed(1) : 'N/A'}</td>
                   <td className="py-3 px-4">{supplier.contact_name}</td>
                   <td className="py-3 px-4">{formatDate(supplier.onboarding_date)}</td>
                 </tr>
@@ -305,11 +312,36 @@ const SupplierManagement: React.FC = () => {
               {supplierPerformance.slice(0, 10).map((perf) => (
                 <tr key={perf.supplier_id} className="border-b border-gray-700 hover:bg-dashboard-dark">
                   <td className="py-3 px-4">{perf.supplier_name}</td>
-                  <td className="py-3 px-4">{perf.avg_quality_score ? perf.avg_quality_score.toFixed(1) : 'N/A'}</td>
-                  <td className="py-3 px-4">{perf.avg_delivery_score ? perf.avg_delivery_score.toFixed(1) : 'N/A'}</td>
-                  <td className="py-3 px-4">{perf.avg_responsiveness_score ? perf.avg_responsiveness_score.toFixed(1) : 'N/A'}</td>
-                  <td className="py-3 px-4">{perf.avg_cost_score ? perf.avg_cost_score.toFixed(1) : 'N/A'}</td>
-                  <td className="py-3 px-4">{perf.avg_overall_score ? perf.avg_overall_score.toFixed(1) : 'N/A'}</td>
+                  <td className="py-3 px-4">{
+                    (perf.avg_quality_score && typeof perf.avg_quality_score === 'number') ? 
+                      perf.avg_quality_score.toFixed(1) : 
+                    (perf.quality_score && typeof perf.quality_score === 'number') ? 
+                      perf.quality_score.toFixed(1) : 'N/A'
+                  }</td>
+                  <td className="py-3 px-4">{
+                    (perf.avg_delivery_score && typeof perf.avg_delivery_score === 'number') ? 
+                      perf.avg_delivery_score.toFixed(1) : 
+                    (perf.delivery_score && typeof perf.delivery_score === 'number') ? 
+                      perf.delivery_score.toFixed(1) : 'N/A'
+                  }</td>
+                  <td className="py-3 px-4">{
+                    (perf.avg_responsiveness_score && typeof perf.avg_responsiveness_score === 'number') ? 
+                      perf.avg_responsiveness_score.toFixed(1) : 
+                    (perf.responsiveness_score && typeof perf.responsiveness_score === 'number') ? 
+                      perf.responsiveness_score.toFixed(1) : 'N/A'
+                  }</td>
+                  <td className="py-3 px-4">{
+                    (perf.avg_cost_score && typeof perf.avg_cost_score === 'number') ? 
+                      perf.avg_cost_score.toFixed(1) : 
+                    (perf.cost_score && typeof perf.cost_score === 'number') ? 
+                      perf.cost_score.toFixed(1) : 'N/A'
+                  }</td>
+                  <td className="py-3 px-4">{
+                    (perf.avg_overall_score && typeof perf.avg_overall_score === 'number') ? 
+                      perf.avg_overall_score.toFixed(1) : 
+                    (perf.overall_score && typeof perf.overall_score === 'number') ? 
+                      perf.overall_score.toFixed(1) : 'N/A'
+                  }</td>
                   <td className="py-3 px-4">
                     <span className={`px-2 py-1 rounded-full text-xs ${
                       perf.performance_category === 'Excellent' ? 'bg-green-100 text-green-800' :

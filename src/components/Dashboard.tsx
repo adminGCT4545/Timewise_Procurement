@@ -7,6 +7,9 @@ import {
   getPurchaseOrderStatusSummary,
   getRequisitions,
   getInvoices,
+  getRecentInvoices,
+  getInvoiceAgingData,
+  getPaymentSummary,
   getInventoryItems,
   getInventoryStatusSummary,
   getSpendByCategory,
@@ -62,6 +65,14 @@ const Dashboard: React.FC = () => {
   const [spendByCategory, setSpendByCategory] = useState<SpendByCategory[]>([]);
   const [spendByDepartment, setSpendByDepartment] = useState<SpendByDepartment[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [invoiceAgingData, setInvoiceAgingData] = useState<any[]>([]);
+  const [paymentSummary, setPaymentSummary] = useState<any>({
+    totalInvoices: 0,
+    unpaidInvoices: 0,
+    overdueAmount: 0,
+    overdueInvoices: 0,
+    currency: 'USD'
+  });
   
   // UI state
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -110,6 +121,12 @@ const Dashboard: React.FC = () => {
         
         const invoicesData = await getInvoices();
         setInvoices(invoicesData);
+        
+        const invoiceAgingData = await getInvoiceAgingData();
+        setInvoiceAgingData(invoiceAgingData);
+        
+        const paymentSummaryData = await getPaymentSummary();
+        setPaymentSummary(paymentSummaryData);
         
         const inventoryItemsData = await getInventoryItems();
         setInventoryItems(inventoryItemsData);
@@ -259,30 +276,105 @@ const Dashboard: React.FC = () => {
     };
   };
   
-  // Filter data based on selected department
-  const filteredPurchaseOrders = selectedDepartment === 'all' 
-    ? purchaseOrders 
-    : purchaseOrders.filter((po: PurchaseOrder) => po.department_name === selectedDepartment);
+  // Filter data based on selected filters (department, date range, metric)
+  const filterDataByDateRange = (data: any[], dateField: string) => {
+    if (!data || data.length === 0) return [];
+    
+    const today = new Date();
+    let startDate = new Date();
+    
+    switch (selectedDateRange) {
+      case 'month':
+        startDate.setMonth(today.getMonth() - 1);
+        break;
+      case 'quarter':
+        startDate.setMonth(today.getMonth() - 3);
+        break;
+      case 'year':
+        startDate.setFullYear(today.getFullYear() - 1);
+        break;
+      case 'all':
+      default:
+        return data; // No date filtering for 'all'
+    }
+    
+    return data.filter(item => {
+      const itemDate = new Date(item[dateField]);
+      return itemDate >= startDate && itemDate <= today;
+    });
+  };
   
-  const filteredRequisitions = selectedDepartment === 'all'
-    ? requisitions
-    : requisitions.filter((req: Requisition) => req.department_name === selectedDepartment);
+  // Get section visibility based on selected metric
+  const shouldShowSection = (section: string): boolean => {
+    switch (selectedMetric) {
+      case 'spend':
+        return ['spend', 'purchase_orders', 'invoices'].includes(section);
+      case 'suppliers':
+        return ['suppliers', 'performance'].includes(section);
+      case 'inventory':
+        return ['inventory'].includes(section);
+      default:
+        return true;
+    }
+  };
+  
+  // Apply all filters to purchase orders 
+  const filteredPurchaseOrders = purchaseOrders
+    .filter((po: PurchaseOrder) => selectedDepartment === 'all' || po.department_name === selectedDepartment)
+    .filter((po: PurchaseOrder) => filterDataByDateRange([po], 'order_date').length > 0);
+  
+  // Apply all filters to requisitions
+  const filteredRequisitions = requisitions
+    .filter((req: Requisition) => selectedDepartment === 'all' || req.department_name === selectedDepartment)
+    .filter((req: Requisition) => filterDataByDateRange([req], 'request_date').length > 0);
+  
+  // Apply filters to invoices
+  const filteredInvoices = invoices
+    .filter((inv: Invoice) => filterDataByDateRange([inv], 'invoice_date').length > 0);
+  
+  // Apply filters to inventory items based on selected metric
+  const filteredInventoryItems = inventoryItems
+    .filter((item: InventoryItem) => filterDataByDateRange([item], 'created_at').length > 0);
+  
+  // Apply filters to suppliers
+  const filteredSuppliers = suppliers;
   
   // Prepare data for charts
   const preparePoStatusData = () => {
-    return poStatusSummary.map((status: PurchaseOrderStatusSummary) => ({
-      status: status.status,
-      count: status.po_count,
-      value: status.total_value
+    // Instead of using the summary data, calculate from filtered purchase orders
+    const statusCounts: Record<string, { count: number, value: number }> = {};
+    
+    filteredPurchaseOrders.forEach((po: PurchaseOrder) => {
+      if (!statusCounts[po.status]) {
+        statusCounts[po.status] = { count: 0, value: 0 };
+      }
+      statusCounts[po.status].count += 1;
+      statusCounts[po.status].value += po.total_amount;
+    });
+    
+    return Object.entries(statusCounts).map(([status, data]) => ({
+      status,
+      count: data.count,
+      value: data.value
     }));
   };
   
-  const prepareSpendByCategoryData = () => {
-    return spendByCategory.slice(0, 5); // Top 5 categories
+const prepareSpendByCategoryData = () => {
+    // Map the data to ensure property names match what the chart expects
+    return spendByCategory.slice(0, 5).map(category => ({
+      name: category.category_name,
+      total_spend: category.total_spent,
+      percent: category.percentage
+    }));
   };
   
   const prepareSpendByDepartmentData = () => {
-    return spendByDepartment;
+    // Map the data to ensure property names match what the chart expects
+    return spendByDepartment.map(department => ({
+      department_name: department.department_name,
+      total_spend: department.total_spent,
+      percent: department.percentage
+    }));
   };
   
   const prepareSupplierPerformanceData = () => {
@@ -313,7 +405,7 @@ const Dashboard: React.FC = () => {
       'converted': 0
     };
     
-    requisitions.forEach((req: Requisition) => {
+    filteredRequisitions.forEach((req: Requisition) => {
       if (statusCounts[req.status] !== undefined) {
         statusCounts[req.status]++;
       }
@@ -326,46 +418,8 @@ const Dashboard: React.FC = () => {
   };
   
   const prepareInvoiceAgingData = () => {
-    const agingBuckets: Record<string, number> = {
-      'Not due': 0,
-      'Due in 7 days': 0,
-      '1-30 days': 0,
-      '31-60 days': 0,
-      '61-90 days': 0,
-      '> 90 days': 0,
-      'Paid': 0
-    };
-    
-    invoices.forEach((invoice: Invoice) => {
-      if (invoice.status === 'paid') {
-        agingBuckets['Paid']++;
-      } else if (invoice.days_overdue > 90) {
-        agingBuckets['> 90 days']++;
-      } else if (invoice.days_overdue > 60) {
-        agingBuckets['61-90 days']++;
-      } else if (invoice.days_overdue > 30) {
-        agingBuckets['31-60 days']++;
-      } else if (invoice.days_overdue > 0) {
-        agingBuckets['1-30 days']++;
-      } else {
-        // Not overdue yet
-        const dueDate = new Date(invoice.due_date);
-        const today = new Date();
-        const diffTime = dueDate.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        if (diffDays <= 7) {
-          agingBuckets['Due in 7 days']++;
-        } else {
-          agingBuckets['Not due']++;
-        }
-      }
-    });
-    
-    return Object.entries(agingBuckets).map(([aging, count]) => ({
-      aging,
-      count
-    }));
+    // Use the data from the API endpoint
+    return invoiceAgingData;
   };
   
   if (isLoading) {
@@ -467,7 +521,7 @@ const Dashboard: React.FC = () => {
           {/* Main Dashboard Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
             {/* Requisition & Approval Panel */}
-            <div className="bg-dashboard-panel rounded shadow p-4">
+            <div className={`bg-dashboard-panel rounded shadow p-4 ${!shouldShowSection('purchase_orders') ? 'opacity-50' : ''}`}>
               <h2 className="text-dashboard-header text-lg mb-4">Requisitions & Approvals</h2>
               
               <div className="mb-4">
@@ -569,7 +623,7 @@ const Dashboard: React.FC = () => {
             </div>
             
             {/* Purchase Orders Panel */}
-            <div className="bg-dashboard-panel rounded shadow p-4">
+            <div className={`bg-dashboard-panel rounded shadow p-4 ${!shouldShowSection('purchase_orders') ? 'opacity-50' : ''}`}>
               <h2 className="text-dashboard-header text-lg mb-4">Purchase Orders</h2>
               
               <div className="mb-4">
@@ -665,7 +719,7 @@ const Dashboard: React.FC = () => {
             </div>
             
             {/* Inventory Panel */}
-            <div className="bg-dashboard-panel rounded shadow p-4">
+            <div className={`bg-dashboard-panel rounded shadow p-4 ${!shouldShowSection('inventory') ? 'opacity-50' : ''}`}>
               <h2 className="text-dashboard-header text-lg mb-4">Inventory</h2>
               
               <div className="mb-4">
@@ -753,7 +807,7 @@ const Dashboard: React.FC = () => {
             </div>
             
             {/* Invoices Panel */}
-            <div className="bg-dashboard-panel rounded shadow p-4">
+            <div className={`bg-dashboard-panel rounded shadow p-4 ${!shouldShowSection('invoices') ? 'opacity-50' : ''}`}>
               <h2 className="text-dashboard-header text-lg mb-4">Invoices & Payments</h2>
               
               <div className="mb-4">
@@ -834,23 +888,18 @@ const Dashboard: React.FC = () => {
                 <div className="bg-dashboard-dark rounded p-3">
                   <div className="flex justify-between mb-2">
                     <span className="text-dashboard-subtext">Total Invoices</span>
-                    <span className="text-dashboard-text">{invoices.length}</span>
+                    <span className="text-dashboard-text">{paymentSummary.totalInvoices}</span>
                   </div>
                   <div className="flex justify-between mb-2">
                     <span className="text-dashboard-subtext">Unpaid Invoices</span>
                     <span className="text-dashboard-text">
-                      {invoices.filter((invoice: Invoice) => invoice.status !== 'paid').length}
+                      {paymentSummary.unpaidInvoices}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-dashboard-subtext">Overdue Amount</span>
                     <span className="text-dashboard-text text-red-400">
-                      {invoices.length > 0 
-                        ? invoices
-                            .filter((invoice: Invoice) => invoice.status !== 'paid' && invoice.days_overdue > 0)
-                            .reduce((sum: number, invoice: Invoice) => sum + invoice.total_amount, 0)
-                            .toLocaleString() 
-                        : "0"} USD
+                      {paymentSummary.overdueAmount.toLocaleString()} {paymentSummary.currency}
                     </span>
                   </div>
                 </div>
@@ -861,7 +910,7 @@ const Dashboard: React.FC = () => {
           {/* Second Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
             {/* Spend Analysis */}
-            <div className="bg-dashboard-panel rounded shadow p-4">
+            <div className={`bg-dashboard-panel rounded shadow p-4 ${!shouldShowSection('spend') ? 'opacity-50' : ''}`}>
               <h2 className="text-dashboard-header text-lg mb-4">Spend Analysis</h2>
               
               <div className="mb-4">
@@ -926,7 +975,7 @@ const Dashboard: React.FC = () => {
             </div>
             
             {/* Supplier Performance */}
-            <div className="bg-dashboard-panel rounded shadow p-4">
+            <div className={`bg-dashboard-panel rounded shadow p-4 ${!shouldShowSection('suppliers') ? 'opacity-50' : ''}`}>
               <h2 className="text-dashboard-header text-lg mb-4">Supplier Performance</h2>
               
               <div className="mb-4">

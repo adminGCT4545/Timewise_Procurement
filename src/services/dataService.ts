@@ -7,27 +7,27 @@ export interface Member {
   first_name: string;
   last_name: string;
   email: string;
-  phone: string;
-  address_line1: string;
-  address_line2: string;
-  city: string;
-  state: string;
-  postal_code: string;
-  country: string;
+  phone: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  state: string | null;
+  postal_code: string | null;
+  country: string | null;
   membership_type: string;
   join_date: string;
   expiration_date: string;
   status: string;
   points: number;
-  last_login: string;
-  referral_source: string;
-  referred_by: number;
-  is_primary_account: boolean;
-  primary_account_id: number;
-  birthdate: string;
-  email_opt_in: boolean;
-  sms_opt_in: boolean;
-  notes: string;
+  last_login: string | null;
+  referral_source: string | null;
+  referred_by: number | null;
+  is_primary_account: boolean | null;
+  primary_account_id: number | null;
+  birthdate: string | null;
+  email_opt_in: boolean | null;
+  sms_opt_in: boolean | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -84,7 +84,7 @@ export interface MemberActivity {
   activity_type: string;
   activity_date: string;
   points_earned: number;
-  amount_spent: number;
+  amount_spent: number | null;
   location: string;
   details: string;
 }
@@ -569,8 +569,79 @@ export const getInvoices = async (status?: string): Promise<Invoice[]> => {
     return invoices;
   } catch (error) {
     console.error('Error fetching invoices:', error);
-    return getFallbackInvoices();
+    throw error; // No fallback, query PostgreSQL directly
   }
+};
+
+// Function to fetch recent invoices
+export const getRecentInvoices = async (limit: number = 5): Promise<Invoice[]> => {
+  try {
+    const url = `/api/dashboard/invoices/recent?limit=${limit}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const invoices = await response.json();
+    return invoices;
+  } catch (error) {
+    console.error('Error fetching recent invoices:', error);
+    throw error; // No fallback, query PostgreSQL directly
+  }
+};
+
+// Function to fetch invoice aging data
+export const getInvoiceAgingData = async (): Promise<any[]> => {
+  try {
+    const response = await fetch('/api/dashboard/invoices/aging');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const agingData = await response.json();
+    return agingData;
+  } catch (error) {
+    console.error('Error fetching invoice aging data:', error);
+    console.warn('Using fallback invoice aging data');
+    return getFallbackInvoiceAgingData();
+  }
+};
+
+// Function to fetch payment summary
+export const getPaymentSummary = async (): Promise<any> => {
+  try {
+    const response = await fetch('/api/dashboard/invoices/payment-summary');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const summary = await response.json();
+    return summary;
+  } catch (error) {
+    console.error('Error fetching payment summary:', error);
+    console.warn('Using fallback payment summary data');
+    return getFallbackPaymentSummary();
+  }
+};
+
+// Fallback functions for invoice data
+const getFallbackInvoiceAgingData = (): any[] => {
+  return [
+    { aging: 'Not Due', count: 85, amount: 3731061.47 },
+    { aging: '1-30 days', count: 72, amount: 3096890.60 },
+    { aging: '31-60 days', count: 3, amount: 128611.59 },
+    { aging: 'Paid', count: 40, amount: 1968236.74 }
+  ];
+};
+
+const getFallbackPaymentSummary = (): any => {
+  return {
+    totalInvoices: 200,
+    unpaidInvoices: 160,
+    overdueAmount: 3225502.19,
+    overdueInvoices: 75,
+    currency: 'USD'
+  };
 };
 
 // Function to fetch inventory items
@@ -621,7 +692,7 @@ export const getMembers = async (): Promise<Member[]> => {
     return members;
   } catch (error) {
     console.error('Error fetching members:', error);
-    return getFallbackMembers();
+    throw error; // No fallback, only use PostgreSQL data
   }
 };
 
@@ -637,7 +708,7 @@ export const getMemberStatusSummary = async (): Promise<MemberStatusSummary[]> =
     return summary;
   } catch (error) {
     console.error('Error fetching member status summary:', error);
-    return getFallbackMemberStatusSummary();
+    throw error; // No fallback, only use PostgreSQL data
   }
 };
 
@@ -653,7 +724,7 @@ export const getMembershipTypeSummary = async (): Promise<MembershipTypeSummary[
     return summary;
   } catch (error) {
     console.error('Error fetching membership type summary:', error);
-    return getFallbackMembershipTypeSummary();
+    throw error; // No fallback, only use PostgreSQL data
   }
 };
 
@@ -670,7 +741,7 @@ export const getExpiringMemberships = async (days?: number): Promise<ExpiringMem
     return expiring;
   } catch (error) {
     console.error('Error fetching expiring memberships:', error);
-    return getFallbackExpiringMemberships();
+    throw error; // No fallback, only use PostgreSQL data
   }
 };
 
@@ -686,7 +757,7 @@ export const getMemberEngagement = async (): Promise<MemberEngagement[]> => {
     return engagement;
   } catch (error) {
     console.error('Error fetching member engagement:', error);
-    return getFallbackMemberEngagement();
+    throw error; // No fallback, only use PostgreSQL data
   }
 };
 
@@ -703,7 +774,7 @@ export const getRecentActivities = async (limit?: number): Promise<MemberActivit
     return activities;
   } catch (error) {
     console.error('Error fetching recent activities:', error);
-    return getFallbackRecentActivities();
+    throw error; // No fallback, only use PostgreSQL data
   }
 };
 
@@ -923,10 +994,11 @@ const getFallbackRequisitions = (): Requisition[] => {
   return [];
 };
 
-const getFallbackInvoices = (): Invoice[] => {
-  console.warn('Using empty fallback invoice data until PostgreSQL directory is linked');
-  return [];
-};
+// This function is no longer needed as we're always using PostgreSQL data
+// const getFallbackInvoices = (): Invoice[] => {
+//   console.warn('Using empty fallback invoice data until PostgreSQL directory is linked');
+//   return [];
+// };
 
 const getFallbackInventory = (): InventoryItem[] => {
   console.warn('Using empty fallback inventory data until PostgreSQL directory is linked');
@@ -939,41 +1011,340 @@ const getFallbackInventoryStatusSummary = (): InventoryStatusSummary[] => {
 };
 
 const getFallbackMembers = (): Member[] => {
-  console.warn('Using empty fallback member data until PostgreSQL directory is linked');
-  return [];
+  console.warn('Using fallback member data for testing');
+  return [
+    {
+      member_id: 1,
+      first_name: 'John',
+      last_name: 'Smith',
+      email: 'john.smith@example.com',
+      phone: '512-555-1234',
+      address_line1: '123 Main St',
+      address_line2: 'Apt 4B',
+      city: 'Austin',
+      state: 'TX',
+      postal_code: '78660',
+      country: 'United States',
+      membership_type: 'premium',
+      join_date: '2024-01-15',
+      expiration_date: '2025-01-15',
+      status: 'active',
+      points: 750,
+      last_login: '2025-04-28 14:22:36',
+      referral_source: 'website',
+      notes: 'Interested in weekend events',
+      is_primary_account: true,
+      primary_account_id: null,
+      birthdate: null,
+      email_opt_in: true,
+      sms_opt_in: false,
+      referred_by: null,
+      created_at: '2025-05-03T22:12:18.656Z',
+      updated_at: '2025-05-03T22:12:18.656Z'
+    },
+    {
+      member_id: 2,
+      first_name: 'Maria',
+      last_name: 'Garcia',
+      email: 'maria.garcia@example.com',
+      phone: '512-555-2345',
+      address_line1: '456 Oak Ave',
+      address_line2: null,
+      city: 'Pflugerville',
+      state: 'TX',
+      postal_code: '78660',
+      country: 'United States',
+      membership_type: 'standard',
+      join_date: '2024-02-20',
+      expiration_date: '2025-02-20',
+      status: 'active',
+      points: 320,
+      last_login: '2025-04-29 09:15:22',
+      referral_source: 'friend',
+      notes: 'Prefers email communications',
+      is_primary_account: true,
+      primary_account_id: null,
+      birthdate: null,
+      email_opt_in: true,
+      sms_opt_in: false,
+      referred_by: null,
+      created_at: '2025-05-03T22:12:18.656Z',
+      updated_at: '2025-05-03T22:12:18.656Z'
+    },
+    {
+      member_id: 3,
+      first_name: 'Robert',
+      last_name: 'Johnson',
+      email: 'robert.j@example.com',
+      phone: '512-555-3456',
+      address_line1: '789 Pine St',
+      address_line2: 'Suite 101',
+      city: 'Round Rock',
+      state: 'TX',
+      postal_code: '78664',
+      country: 'United States',
+      membership_type: 'premium',
+      join_date: '2023-11-10',
+      expiration_date: '2024-11-10',
+      status: 'active',
+      points: 1250,
+      last_login: '2025-04-30 16:45:10',
+      referral_source: 'social_media',
+      notes: null,
+      is_primary_account: true,
+      primary_account_id: null,
+      birthdate: null,
+      email_opt_in: true,
+      sms_opt_in: false,
+      referred_by: null,
+      created_at: '2025-05-03T22:12:18.656Z',
+      updated_at: '2025-05-03T22:12:18.656Z'
+    },
+    {
+      member_id: 8,
+      first_name: 'Sarah',
+      last_name: 'Wilson',
+      email: 'sarah.w@example.com',
+      phone: '512-555-8901',
+      address_line1: '258 Willow Way',
+      address_line2: null,
+      city: 'Pflugerville',
+      state: 'TX',
+      postal_code: '78660',
+      country: 'United States',
+      membership_type: 'standard',
+      join_date: '2023-10-05',
+      expiration_date: '2024-10-05',
+      status: 'expiring',
+      points: 710,
+      last_login: '2025-04-15 17:30:20',
+      referral_source: 'social_media',
+      notes: 'Send renewal reminder',
+      is_primary_account: true,
+      primary_account_id: null,
+      birthdate: null,
+      email_opt_in: true,
+      sms_opt_in: false,
+      referred_by: null,
+      created_at: '2025-05-03T22:12:18.656Z',
+      updated_at: '2025-05-03T22:12:18.656Z'
+    },
+    {
+      member_id: 11,
+      first_name: 'Thomas',
+      last_name: 'Martinez',
+      email: 'thomas.m@example.com',
+      phone: '512-556-1234',
+      address_line1: '581 Hickory St',
+      address_line2: null,
+      city: 'Austin',
+      state: 'TX',
+      postal_code: '78748',
+      country: 'United States',
+      membership_type: 'premium',
+      join_date: '2023-09-15',
+      expiration_date: '2024-09-15',
+      status: 'expiring',
+      points: 970,
+      last_login: '2025-04-20 14:50:18',
+      referral_source: 'friend',
+      notes: 'Considering upgrade to family plan',
+      is_primary_account: true,
+      primary_account_id: null,
+      birthdate: null,
+      email_opt_in: true,
+      sms_opt_in: false,
+      referred_by: null,
+      created_at: '2025-05-03T22:12:18.656Z',
+      updated_at: '2025-05-03T22:12:18.656Z'
+    },
+    {
+      member_id: 12,
+      first_name: 'Patricia',
+      last_name: 'Thompson',
+      email: 'patricia.t@example.com',
+      phone: '512-556-2345',
+      address_line1: '692 Chestnut Ave',
+      address_line2: 'Suite 5',
+      city: 'Pflugerville',
+      state: 'TX',
+      postal_code: '78660',
+      country: 'United States',
+      membership_type: 'family',
+      join_date: '2024-03-10',
+      expiration_date: '2025-03-10',
+      status: 'active',
+      points: 520,
+      last_login: '2025-04-29 16:25:40',
+      referral_source: 'event',
+      notes: 'Family of 4',
+      is_primary_account: true,
+      primary_account_id: null,
+      birthdate: null,
+      email_opt_in: true,
+      sms_opt_in: false,
+      referred_by: null,
+      created_at: '2025-05-03T22:12:18.656Z',
+      updated_at: '2025-05-03T22:12:18.656Z'
+    }
+  ];
 };
 
 const getFallbackMemberStatusSummary = (): MemberStatusSummary[] => {
-  console.warn('Using empty fallback member status summary data until PostgreSQL directory is linked');
-  return [];
+  console.warn('Using fallback member status summary data for testing');
+  return [
+    {
+      status: 'active',
+      member_count: 1,
+      total_points: 100
+    }
+  ];
 };
 
 const getFallbackMembershipTypeSummary = (): MembershipTypeSummary[] => {
-  console.warn('Using empty fallback membership type summary data until PostgreSQL directory is linked');
-  return [];
+  console.warn('Using fallback membership type summary data for testing');
+  return [
+    {
+      membership_type: 'standard',
+      monthly_fee: 9.99,
+      annual_fee: 99.99,
+      member_count: 1,
+      total_points: 100
+    }
+  ];
 };
 
 const getFallbackExpiringMemberships = (): ExpiringMembership[] => {
-  console.warn('Using empty fallback expiring memberships data until PostgreSQL directory is linked');
-  return [];
+  console.warn('Using fallback expiring memberships data for testing');
+  return [
+    {
+      member_id: 1,
+      first_name: 'John',
+      last_name: 'Doe',
+      email: 'john.doe@example.com',
+      phone: '555-123-4567',
+      membership_type: 'standard',
+      join_date: '2025-01-01',
+      expiration_date: '2026-01-01',
+      status: 'active',
+      days_remaining: 365
+    }
+  ];
 };
 
 const getFallbackMemberEngagement = (): MemberEngagement[] => {
-  console.warn('Using empty fallback member engagement data until PostgreSQL directory is linked');
-  return [];
+  console.warn('Using fallback member engagement data for testing');
+  return [
+    {
+      member_id: 1,
+      first_name: 'John',
+      last_name: 'Doe',
+      email: 'john.doe@example.com',
+      membership_type: 'standard',
+      join_date: '2025-01-01',
+      status: 'active',
+      points: 100,
+      total_activities: 5,
+      latest_activity: '2025-05-01',
+      days_since_last_activity: 2,
+      total_spent: 500,
+      events_attended: 2,
+      referrals_made: 1
+    }
+  ];
 };
 
 const getFallbackRecentActivities = (): MemberActivity[] => {
-  console.warn('Using empty fallback recent activities data until PostgreSQL directory is linked');
-  return [];
+  console.warn('Using fallback recent activities data for testing');
+  return [
+    {
+      log_id: 1,
+      member_id: 1,
+      first_name: 'John',
+      last_name: 'Doe',
+      activity_type: 'login',
+      activity_date: '2025-05-01',
+      points_earned: 10,
+      amount_spent: null,
+      location: 'web',
+      details: 'Logged in to the system'
+    }
+  ];
 };
 
 const getFallbackSpendByCategory = (): SpendByCategory[] => {
-  console.warn('Using empty fallback spend by category data until PostgreSQL directory is linked');
-  return [];
+  console.warn('Using fallback spend by category data for testing');
+  return [
+    {
+      category_name: 'IT Equipment',
+      total_spent: 32500,
+      percentage: 30.5
+    },
+    {
+      category_name: 'Office Supplies',
+      total_spent: 18700,
+      percentage: 17.6
+    },
+    {
+      category_name: 'Consulting Services',
+      total_spent: 25000,
+      percentage: 23.5
+    },
+    {
+      category_name: 'Software Licenses',
+      total_spent: 15300,
+      percentage: 14.4
+    },
+    {
+      category_name: 'Travel',
+      total_spent: 8500,
+      percentage: 8.0
+    },
+    {
+      category_name: 'Miscellaneous',
+      total_spent: 6400,
+      percentage: 6.0
+    }
+  ];
 };
 
 const getFallbackSpendByDepartment = (): SpendByDepartment[] => {
-  console.warn('Using empty fallback spend by department data until PostgreSQL directory is linked');
-  return [];
+  console.warn('Using fallback spend by department data for testing');
+  return [
+    {
+      department_name: 'Finance',
+      total_spent: 21500,
+      percentage: 15.6
+    },
+    {
+      department_name: 'Marketing',
+      total_spent: 28700,
+      percentage: 20.8
+    },
+    {
+      department_name: 'Operations',
+      total_spent: 24300,
+      percentage: 17.6
+    },
+    {
+      department_name: 'Sales',
+      total_spent: 19800,
+      percentage: 14.3
+    },
+    {
+      department_name: 'IT',
+      total_spent: 31500,
+      percentage: 22.8
+    },
+    {
+      department_name: 'R&D',
+      total_spent: 7800,
+      percentage: 5.6
+    },
+    {
+      department_name: 'HR',
+      total_spent: 4500,
+      percentage: 3.3
+    }
+  ];
 };

@@ -1,10 +1,31 @@
 module.exports = {
-  testEnvironment: 'jsdom',
+  testEnvironment: 'node',
+  verbose: true,
+  collectCoverage: true,
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'clover'],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80
+    }
+  },
+  testMatch: [
+    '**/tests/**/*.test.js',
+    '**/tests/**/*.test.ts'
+  ],
   transform: {
-    '^.+\\.(ts|tsx|js|jsx)$': 'babel-jest',
+    '^.+\\.(ts|tsx|js|jsx)$': 'babel-jest'
   },
   moduleNameMapper: {
-    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
   },
-  transformIgnorePatterns: [],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+  globalSetup: '<rootDir>/tests/global-setup.js',
+  globalTeardown: '<rootDir>/tests/global-teardown.js',
+  testTimeout: 10000,
+  maxWorkers: '50%'
 };

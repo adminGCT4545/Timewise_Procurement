@@ -5,13 +5,13 @@ import ProcurementSchedules from './components/ProcurementSchedules';
 import InvoiceIntake from './components/InvoiceIntake';
 import AutomatedOrders from './components/AutomatedOrders';
 import SupplierManagement from './components/SupplierManagement';
+import Membership from './components/Membership';
 import Layout from './components/Layout';
 import './index.css';
 
 // Import or create placeholder components for the additional pages
 import Reports from './components/Reports';
 import ErpModeling from './components/ErpModeling';
-import InventoryManagement from './components/InventoryManagement';
 import SystemLogs from './components/SystemLogs';
 
 function App() {
@@ -23,12 +23,12 @@ function App() {
             <Dashboard />
           </Layout>
         } />
-        <Route path="/train-schedules" element={
+        <Route path="/procurement-schedules" element={
           <Layout title="Procurement Schedules - TimeWise Procurement">
             <ProcurementSchedules />
           </Layout>
         } />
-        <Route path="/ticket-sales" element={
+        <Route path="/invoice-intake" element={
           <Layout title="Invoice Intake - TimeWise Procurement">
             <InvoiceIntake />
           </Layout>
@@ -38,7 +38,7 @@ function App() {
             <AutomatedOrders />
           </Layout>
         } />
-        <Route path="/train-fleet" element={
+        <Route path="/supplier-management" element={
           <Layout title="Supplier Management - TimeWise Procurement">
             <SupplierManagement />
           </Layout>
@@ -53,14 +53,14 @@ function App() {
             <ErpModeling />
           </Layout>
         } />
-        <Route path="/passengers" element={
-          <Layout title="Membership Management - TimeWise Procurement">
-            <InventoryManagement />
-          </Layout>
-        } />
         <Route path="/system-logs" element={
           <Layout title="System Logs - TimeWise Procurement">
             <SystemLogs />
+          </Layout>
+        } />
+        <Route path="/membership" element={
+          <Layout title="Membership Management - TimeWise Procurement">
+            <Membership />
           </Layout>
         } />
       </Routes>

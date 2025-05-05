@@ -851,22 +851,16 @@ const supplierManagementModel = {
         SELECT 
           s.supplier_id,
           s.supplier_name,
-          AVG(p.quality_score) as avg_quality_score,
-          AVG(p.delivery_score) as avg_delivery_score,
-          AVG(p.responsiveness_score) as avg_responsiveness_score,
-          AVG(p.cost_score) as avg_cost_score,
-          AVG(p.overall_score) as avg_overall_score,
-          CASE 
-            WHEN AVG(p.overall_score) >= 4.5 THEN 'Excellent'
-            WHEN AVG(p.overall_score) >= 4.0 THEN 'Good'
-            WHEN AVG(p.overall_score) >= 3.5 THEN 'Average'
-            ELSE 'Needs Improvement'
-          END as performance_category
+          sp.quality_score as avg_quality_score,
+          sp.delivery_score as avg_delivery_score,
+          sp.responsiveness_score as avg_responsiveness_score,
+          sp.cost_score as avg_cost_score,
+          sp.overall_score as avg_overall_score,
+          sp.performance_category
         FROM suppliers s
-        JOIN supplier_performance_evaluations p ON s.supplier_id = p.supplier_id
+        JOIN supplier_performance sp ON s.supplier_id = sp.supplier_id
         WHERE s.supplier_status = 'active'
-        GROUP BY s.supplier_id, s.supplier_name
-        ORDER BY avg_overall_score DESC
+        ORDER BY sp.overall_score DESC
       `;
       
       const result = await pool.query(query);
